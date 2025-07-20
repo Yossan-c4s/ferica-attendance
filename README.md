@@ -27,7 +27,7 @@ Raspberry Pi 5・SONY RC-S380・OSOYOO 5インチDSIタッチパネルを組み�
 ### 1. リポジトリクローン
 
 ```bash
-git clone https://github.com/ferica-attendance/ferica-attendance-system.git
+git clone https://github.com/Yossan-c4s/ferica-attendance.git
 cd ferica-attendance-system
 ```
 
