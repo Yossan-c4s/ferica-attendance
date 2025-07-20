@@ -1,0 +1,6 @@
+# 設定ファイル
+device_id: "RAS01"   # RAS01, RAS02 いずれかに変更
+spreadsheet_id: "YOUR_SPREADSHEET_ID"
+sheet_users: "users"
+sheet_attendance: "attendance"
+timezone: "Asia/Tokyo"

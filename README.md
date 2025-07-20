@@ -1,96 +1,111 @@
 # Fericaカードによる出退勤管理システム
 
-## システム概要
+## 概要
 
-Raspberry Pi 5 ＋ SONY SR-380カードリーダー＋OSOYOO 5インチDSIタッチパネルで構成される、Fericaカードによる出退勤管理システムです。出退勤情報はGoogle Spreadsheetをデータベースとして蓄積します。
+Raspberry Pi 5・SONY RC-S380・OSOYOO 5インチDSIタッチパネルを組み合わせ、Fericaカードで出退勤管理を行うシステムです。Googleスプレッドシートをデータベースとして利用し、装置ごとの打刻情報をリアルタイムに集約します。
 
-## 主な特徴
+---
 
-- Raspberry Pi起動時に自動でシステムが起動、フルスクリーンWeb UIで操作可能
-- Fericaカードをかざすと氏名・時刻が即座に表示され、5秒後に消去（割り込み可）
-- 未登録カードは「未登録ユーザー」として自動登録
-- 午前は「出勤」、午後は「退勤」自動判定。ボタンで手動切替も可能
-- 2台のPiを用意し、装置IDで区別
-- Google Spreadsheetをデータベースとして利用
-- GitHubからそのままPullしてセットアップ可能な構成
-- インストールシェルスクリプト付属
+## システム構成図
 
-## 構成図
+![system_diagram](docs/system_diagram.png)
 
-```
-[User] --(Fericaカード)--> [SR-380カードリーダ] --USB--> [Raspberry Pi 5] --WiFi--> [Google Spreadsheet]
-                                                  |
-                                        [OSOYOO 5" Touch Panel]
-```
+---
 
-## ファイル構成
+## 必要機器・環境
 
-```
-/
-├── README.md
-├── installer.sh
-├── src/
-│   ├── app.py                  # サーバー本体 (Flask)
-│   ├── card_reader.py          # Fericaカードリーダ処理
-│   ├── google_sheets.py        # Google Sheets連携
-│   ├── config.py.template      # 設定ファイルのテンプレート
-│   ├── static/
-│   │   ├── index.html
-│   │   ├── style.css
-│   │   └── app.js
-│   └── systemd/
-│       └── ferica-attendance.service
-└── requirements.txt
-```
+- Raspberry Pi 5 (Raspberry Pi OS最新版) 2台
+- SONY RC-S380 カードリーダー 2台
+- OSOYOO 5inch DSI Touch Screen 2台
+- Wi-Fi（SSID: testssid1234, PASS: password1234）
+- Googleアカウント（GoogleスプレッドシートAPI利用）
+
+---
 
 ## セットアップ手順
 
-1. **GitHubリポジトリをClone**
+### 1. リポジトリクローン
 
-   ```
-   git clone https://github.com/YourOrg/ferica-attendance.git
-   cd ferica-attendance
-   ```
+```bash
+git clone https://github.com/your-org/ferica-attendance-system.git
+cd ferica-attendance-system
+```
 
-2. **インストーラー実行**
+### 2. インストーラー実行
 
-   ```
-   chmod +x installer.sh
-   sudo ./installer.sh
-   ```
+```bash
+sudo bash install.sh
+```
 
-3. **Google API認証ファイル配置**
+### 3. Google API 設定
 
-   - `src/google_sheets.py`の指示に従い、Google Cloud PlatformでAPIキーを取得し、`credentials.json`を`src/`に配置
+1. [Google Cloud Console](https://console.cloud.google.com/) で新規プロジェクトを作成
+2. 「Google Sheets API」「Google Drive API」を有効化
+3. サービスアカウントを作成し、「編集者」権限を付与
+4. サービスアカウントの JSON キーを `config/credentials.json` として保存
+5. Googleスプレッドシートを新規作成し、`config/config.yaml` の `spreadsheet_id` に設定
+6. スプレッドシート共有設定でサービスアカウントのメールアドレスに"編集者"権限付与
 
-4. **config.py作成**
+### 4. Raspberry Pi 装置ID設定
 
-   - `src/config.py.template`をコピーし、`src/config.py`を作成
-   - `DEVICE_ID`（例：RAS01, RAS02）、Wi-Fi情報などを記入
+`config/config.yaml` の `device_id` を装置ごとに `RAS01` `RAS02` へ書き換える
 
-5. **自動起動設定（systemd）**
+---
 
-   ```
-   sudo cp src/systemd/ferica-attendance.service /etc/systemd/system/
-   sudo systemctl enable ferica-attendance
-   sudo systemctl start ferica-attendance
-   ```
+## 起動・運用
 
-6. **Raspberry Pi起動時に自動起動し、タッチパネルでシステム利用開始**
+- Raspberry Piの電源ONで自動起動
+- カードをかざすと画面に氏名・時刻表示（5秒間 or 連続割込表示）
+- 午前中は「出勤」、午後は「退勤」に自動切替
+- 「出勤」「退勤」ボタンで手動切替可能（10秒後に自動リセット）
+- 未登録カードは「未登録ユーザー」として自動登録
 
-## 必要なパッケージ
+---
 
-- Python 3.11+
-- Flask
-- pyserial
-- gspread, google-auth
-- その他requirements.txt参照
+## ディレクトリ構成
 
-## 使用上の注意
+```
+ferica-attendance-system/
+├── app/
+│   ├── main.py
+│   ├── reader.py
+│   ├── sheets.py
+│   ├── gui/
+│   │   ├── index.html
+│   │   ├── style.css
+│   │   ├── app.js
+│   │   └── icon.png
+│   └── utils.py
+├── config/
+│   ├── config.yaml
+│   └── credentials.json
+├── install.sh
+├── docs/
+│   └── system_diagram.png
+└── README.md
+```
 
-- 各Piには固有の`DEVICE_ID`を設定してください
-- Google Spreadsheetの編集権限が必要です
-- タッチパネル用にUIは1024x600など5インチ向けに最適化
+---
+
+## Googleスプレッドシート 構成例
+
+### シート1: users
+
+| user_id | name          | card_id        |
+|---------|---------------|---------------|
+| 0001    | 山田太郎      | 0123456789AB  |
+| 0002    | 佐藤花子      | 1234567890CD  |
+| ...     | ...           | ...           |
+
+### シート2: attendance
+
+| timestamp           | name          | card_id      | device_id | type   |
+|---------------------|---------------|--------------|-----------|--------|
+| 2025/07/20 08:45:00 | 山田太郎      | 0123456789AB | RAS01     | 出勤   |
+| 2025/07/20 17:35:10 | 佐藤花子      | 1234567890CD | RAS02     | 退勤   |
+| ...                 | ...           | ...          | ...       | ...    |
+
+---
 
 ## ライセンス
 
